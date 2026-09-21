@@ -1,0 +1,8 @@
+# 102 MB of LexGLUE parquet. scripts/fetch_data.py pulls it back.
+data/*.parquet
+
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
