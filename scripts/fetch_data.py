@@ -31,22 +31,59 @@ SPLITS = ("train", "validation", "test")
 EXPECT = {"train": 9_000, "validation": 1_000, "test": 1_000}
 
 
+CHUNK = 4_000_000
+
+
+def expected_size(url: str) -> int:
+    """Content-Length from a HEAD, following redirects."""
+    request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "outcome"})
+    with urllib.request.urlopen(request, timeout=120) as response:
+        return int(response.headers["Content-Length"])
+
+
 def fetch(task: str, split: str) -> Path:
+    """One parquet, in byte ranges, verified against Content-Length.
+
+    Ranged rather than a single GET because a plain GET over this link
+    truncates silently on a bad day: curl and urllib both report success and a
+    plausible size, and the failure only surfaces much later as a parquet with
+    no footer. Asking for explicit ranges and checking the total at the end
+    turns that into an error here, where it can be retried.
+    """
     out = DATA / f"{task}_{split}.parquet"
-    if out.exists():
-        print(f"  {out.name} already here ({out.stat().st_size / 1e6:.0f} MB)")
+    url = f"{BASE}/{task}/{split}/0000.parquet"
+
+    total = expected_size(url)
+    if out.exists() and out.stat().st_size == total:
+        print(f"  {out.name} already complete ({total / 1e6:.0f} MB)")
         return out
 
-    url = f"{BASE}/{task}/{split}/0000.parquet"
-    print(f"  {out.name} ...", end="", flush=True)
-    request = urllib.request.Request(url, headers={"User-Agent": "outcome"})
-    try:
-        with urllib.request.urlopen(request, timeout=600) as response:
-            out.write_bytes(response.read())
-    except (urllib.error.URLError, TimeoutError, OSError) as exc:
-        print(f" failed: {exc}")
-        raise
-    print(f" {out.stat().st_size / 1e6:.0f} MB")
+    print(f"  {out.name}  {total / 1e6:.0f} MB ", end="", flush=True)
+    written = 0
+    with out.open("wb") as handle:
+        while written < total:
+            end = min(written + CHUNK, total) - 1
+            request = urllib.request.Request(
+                url,
+                headers={"User-Agent": "outcome", "Range": f"bytes={written}-{end}"},
+            )
+            try:
+                with urllib.request.urlopen(request, timeout=300) as response:
+                    block = response.read()
+            except (urllib.error.URLError, TimeoutError, OSError) as exc:
+                print(f"\n    failed at byte {written:,}: {exc}")
+                raise
+            if not block:
+                raise OSError(f"{out.name}: empty response at byte {written:,}")
+            handle.write(block)
+            written += len(block)
+            print(".", end="", flush=True)
+
+    got = out.stat().st_size
+    if got != total:
+        out.unlink()
+        raise OSError(f"{out.name}: got {got:,} bytes, expected {total:,}. Removed.")
+    print(" ok")
     return out
 
 
