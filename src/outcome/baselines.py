@@ -85,16 +85,18 @@ class Cues:
 
     def fit(self, train) -> Cues:
         bags = [words(c.text) for c in train]
+        everywhere = Counter()
+        for bag in bags:
+            everywhere.update(bag)
         for label in range(len(ARTICLES)):
-            pos, neg = Counter(), Counter()
-            n_p = n_n = 0
+            pos = Counter()
+            n_p = 0
             for case, bag in zip(train, bags, strict=True):
                 if label in case.violated:
                     pos.update(bag)
                     n_p += 1
-                else:
-                    neg.update(bag)
-                    n_n += 1
+            neg = everywhere - pos
+            n_n = len(bags) - n_p
             scored = [
                 (
                     term,
@@ -111,7 +113,9 @@ class Cues:
         return self
 
     def score(self, case, label: int) -> float:
-        bag = words(case.text)
+        return self._score(words(case.text), label)
+
+    def _score(self, bag: set[str], label: int) -> float:
         return sum(w for term, w in self.terms[label] if term in bag)
 
     def tune(self, validation) -> Cues:
@@ -120,26 +124,45 @@ class Cues:
         F1 rather than accuracy: several articles appear in under 2% of cases,
         where a threshold chosen on accuracy predicts 'no' forever and scores
         98%.
+
+        Candidate cuts are the observed scores. Walking them from the top down
+        keeps running tp/fp counts, so each article costs one sort rather than
+        one pass over the split per candidate.
         """
+        bags = [words(c.text) for c in validation]
         for label in range(len(ARTICLES)):
             scored = sorted(
-                (self.score(c, label), label in c.violated) for c in validation
+                ((self._score(bag, label), label in c.violated)
+                 for c, bag in zip(validation, bags, strict=True)),
+                key=lambda t: -t[0],
             )
+            positives = sum(1 for _, gold in scored if gold)
             best, best_at = -1.0, 0.0
-            for cut, _ in scored:
-                tp = sum(1 for s, gold in scored if s >= cut and gold)
-                fp = sum(1 for s, gold in scored if s >= cut and not gold)
-                fn = sum(1 for s, gold in scored if s < cut and gold)
+            tp = fp = 0
+            i = 0
+            while i < len(scored):
+                cut = scored[i][0]
+                # Every case scoring exactly `cut` is predicted together.
+                while i < len(scored) and scored[i][0] == cut:
+                    if scored[i][1]:
+                        tp += 1
+                    else:
+                        fp += 1
+                    i += 1
+                fn = positives - tp
                 f1 = 2 * tp / (2 * tp + fp + fn) if tp else 0.0
-                if f1 > best:
+                # >= keeps the lowest cut among equal F1s, matching an
+                # ascending scan that takes the first maximum.
+                if f1 >= best:
                     best, best_at = f1, cut
             self.cut[label] = best_at
         return self
 
     def predict(self, case) -> frozenset[int]:
+        bag = words(case.text)
         return frozenset(
             label for label in range(len(ARTICLES))
-            if self.score(case, label) >= self.cut.get(label, 0.0)
+            if self._score(bag, label) >= self.cut.get(label, 0.0)
         )
 
 
