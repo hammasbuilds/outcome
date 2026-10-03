@@ -81,7 +81,8 @@ def the_real_question() -> None:
     print(f"  upheld                                {upheld:>6,}   {upheld / claims:.1%}")
     print(f"  rejected                              {claims - upheld:>6,}   "
           f"{1 - upheld / claims:.1%}")
-    print("\n  ^ given the complaint, 'the Court agreed' is right 75.6% of the time.")
+    print(f"\n  ^ given the complaint, 'the Court agreed' is right {upheld / claims:.1%} "
+          "of the time.")
     print("    So the task worth posing is not 'which articles were violated' but")
     print("    'which of these specific complaints failed' — a harder question with")
     print("    a 75/25 base rate instead of a ten-way multi-label one, and one where")
@@ -108,6 +109,12 @@ def the_articles() -> None:
 
 
 def main() -> None:
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(encoding="utf-8")
+    if not corpus.available():
+        print(f"No corpus in {corpus.data_dir()}. Run: python scripts/fetch_data.py "
+              "(or set OUTCOME_DATA).", file=sys.stderr)
+        raise SystemExit(2)
     the_corpus()
     the_baselines()
     the_real_question()

@@ -31,9 +31,27 @@ violation of an article nobody invoked — 269 times in 9,000 cases — which is
 next table possible.
 
 ```
-python scripts/fetch_data.py   # 102 MB of parquet, not in git
-python scripts/measure.py      # every table below
-python -m pytest               # 28 tests
+pip install -e .[dev]
+python demo.py                 # runs now: an illustrative case; the real headline once data is fetched
+python -m pytest               # 41 tests: 19 run without data, 22 skip until the corpus is fetched
+python scripts/fetch_data.py   # 102 MB of parquet, not in git; re-run to resume if it stalls
+python scripts/measure.py      # every table below (~3 min on CPU)
+```
+
+The corpus goes to `data/` by default; set `OUTCOME_DATA=/path/to/dir` to fetch and read it
+anywhere else. Downloads go to `<file>.part` in 4 MB byte ranges and are renamed into place only
+when complete, so an interrupted fetch never leaves a truncated parquet behind.
+
+With the corpus present, `python demo.py` prints:
+
+```
+ECtHR test split, 1,000 judgments (LexGLUE), micro-F1 on Task A:
+
+  copy what was alleged        0.859  (P 0.756, R 0.995)
+  articles named in the facts  0.234
+
+  1,085 of 1,435 alleged article-claims upheld (75.6%).
+  The trained facts-only baseline and per-article table: python scripts/measure.py
 ```
 
 ## What each baseline knows, and what it scores
@@ -116,9 +134,10 @@ which is not in the label set at all.
 ## Layout
 
 ```
-scripts/fetch_data.py        both tasks, all three splits, from the LexGLUE parquet
+demo.py                      the finding in one screen, with or without the corpus
+scripts/fetch_data.py        both tasks, all three splits, resumable, honours OUTCOME_DATA
 src/outcome/corpus.py        the two tasks joined; alleged / violated / upheld / rejected
 src/outcome/baselines.py     four predictors and the micro/macro metrics
 scripts/measure.py           every table above
-tests/                       28 tests, incl. the alignment guard
+tests/                       41 tests, incl. the alignment guard on deliberately misaligned parquet
 ```

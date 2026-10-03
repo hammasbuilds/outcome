@@ -19,16 +19,26 @@ The label ids are indices into `ARTICLES`. That mapping is not distributed with
 the parquet; it was recovered from the data by taking every single-label case
 and asking which article its facts mention most often, which gives an
 unambiguous answer for eight of the ten and matches the published LexGLUE label
-set for all of them. `scripts/verify_mapping.py` re-derives it.
+set for all of them.
+
+The parquet lives in ``data/`` next to the repository by default; set
+``OUTCOME_DATA`` to read it from anywhere else.
 """
 
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
 
-DATA = Path(__file__).resolve().parents[2] / "data"
+DEFAULT_DATA = Path(__file__).resolve().parents[2] / "data"
+
+
+def data_dir() -> Path:
+    """Where the parquet is read from: ``$OUTCOME_DATA`` if set, else ``data/``."""
+    override = os.environ.get("OUTCOME_DATA")
+    return Path(override).expanduser() if override else DEFAULT_DATA
 
 VIOLATED, ALLEGED = "a", "b"
 SPLITS = ("train", "validation", "test")
@@ -92,14 +102,23 @@ class Case:
 
 
 def _path(task: str, split: str) -> Path:
-    return DATA / f"ecthr_{task}_{split}.parquet"
+    return data_dir() / f"ecthr_{task}_{split}.parquet"
 
 
-@lru_cache(maxsize=8)
+def available() -> bool:
+    """True when all six parquet files are on disk."""
+    return all(_path(t, s).exists() for t in (VIOLATED, ALLEGED) for s in SPLITS)
+
+
 def load(split: str = "train") -> tuple[Case, ...]:
     """One split, with both tasks joined row by row."""
     if split not in SPLITS:
         raise ValueError(f"unknown split {split!r}; have {SPLITS}")
+    return _load(split, str(data_dir()))
+
+
+@lru_cache(maxsize=8)
+def _load(split: str, _where: str) -> tuple[Case, ...]:
 
     import pyarrow.parquet as pq
 
@@ -107,7 +126,8 @@ def load(split: str = "train") -> tuple[Case, ...]:
         if not _path(task, split).exists():
             raise CorpusMissingError(
                 f"{_path(task, split)} is missing. Run scripts/fetch_data.py, "
-                "which pulls both tasks from the LexGLUE parquet on HuggingFace."
+                "which pulls both tasks from the LexGLUE parquet on HuggingFace "
+                "(or set OUTCOME_DATA to a directory that already holds them)."
             )
 
     violated = pq.read_table(_path(VIOLATED, split)).to_pylist()
