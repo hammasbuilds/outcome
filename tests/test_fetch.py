@@ -54,8 +54,9 @@ def small_chunks(monkeypatch):
     monkeypatch.setattr(fetch_data, "CHUNK", 1000)
 
 
-def test_interrupted_fetch_leaves_only_a_part_file_then_resumes(tmp_path, monkeypatch,
-                                                                small_chunks):
+def test_interrupted_fetch_leaves_only_a_part_file_then_resumes(
+    tmp_path, monkeypatch, small_chunks
+):
     monkeypatch.setattr(fetch_data.urllib.request, "urlopen", _Server(fail_after=3))
     with pytest.raises(TimeoutError):
         fetch_data.fetch("ecthr_a", "test", tmp_path)
@@ -72,8 +73,7 @@ def test_interrupted_fetch_leaves_only_a_part_file_then_resumes(tmp_path, monkey
     assert not part.exists()
 
 
-def test_wrong_size_leftover_under_the_real_name_is_replaced(tmp_path, monkeypatch,
-                                                             small_chunks):
+def test_wrong_size_leftover_under_the_real_name_is_replaced(tmp_path, monkeypatch, small_chunks):
     final = tmp_path / "ecthr_b_train.parquet"
     final.write_bytes(PAYLOAD[:500])  # what the old, non-atomic fetch left behind
     monkeypatch.setattr(fetch_data.urllib.request, "urlopen", _Server())

@@ -100,8 +100,10 @@ class Cues:
             scored = [
                 (
                     term,
-                    math.log(((pos[term] + 1) / (max(n_p, 1) + 2))
-                             / ((neg[term] + 1) / (max(n_n, 1) + 2))),
+                    math.log(
+                        ((pos[term] + 1) / (max(n_p, 1) + 2))
+                        / ((neg[term] + 1) / (max(n_n, 1) + 2))
+                    ),
                 )
                 for term in set(pos) | set(neg)
             ]
@@ -132,8 +134,10 @@ class Cues:
         bags = [words(c.text) for c in validation]
         for label in range(len(ARTICLES)):
             scored = sorted(
-                ((self._score(bag, label), label in c.violated)
-                 for c, bag in zip(validation, bags, strict=True)),
+                (
+                    (self._score(bag, label), label in c.violated)
+                    for c, bag in zip(validation, bags, strict=True)
+                ),
                 key=lambda t: -t[0],
             )
             positives = sum(1 for _, gold in scored if gold)
@@ -161,7 +165,8 @@ class Cues:
     def predict(self, case) -> frozenset[int]:
         bag = words(case.text)
         return frozenset(
-            label for label in range(len(ARTICLES))
+            label
+            for label in range(len(ARTICLES))
             if self._score(bag, label) >= self.cut.get(label, 0.0)
         )
 

@@ -30,10 +30,8 @@ def data_dir() -> Path:
         return Path(override).expanduser()
     return Path(__file__).resolve().parents[1] / "data"
 
-BASE = (
-    "https://huggingface.co/datasets/coastalcph/lex_glue/"
-    "resolve/refs%2Fconvert%2Fparquet"
-)
+
+BASE = "https://huggingface.co/datasets/coastalcph/lex_glue/resolve/refs%2Fconvert%2Fparquet"
 TASKS = ("ecthr_a", "ecthr_b")
 SPLITS = ("train", "validation", "test")
 
@@ -125,10 +123,7 @@ def main() -> None:
     print("\nchecking")
     ok = True
     for split in SPLITS:
-        rows = {
-            task: pq.read_table(data / f"{task}_{split}.parquet").num_rows
-            for task in TASKS
-        }
+        rows = {task: pq.read_table(data / f"{task}_{split}.parquet").num_rows for task in TASKS}
         want = EXPECT[split]
         good = set(rows.values()) == {want}
         ok &= good

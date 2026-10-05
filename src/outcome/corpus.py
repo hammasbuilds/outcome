@@ -40,21 +40,22 @@ def data_dir() -> Path:
     override = os.environ.get("OUTCOME_DATA")
     return Path(override).expanduser() if override else DEFAULT_DATA
 
+
 VIOLATED, ALLEGED = "a", "b"
 SPLITS = ("train", "validation", "test")
 
 # Index -> the Convention article the label stands for.
 ARTICLES = (
-    "2",      # right to life
-    "3",      # prohibition of torture
-    "5",      # liberty and security
-    "6",      # fair trial
-    "8",      # private and family life
-    "9",      # thought, conscience and religion
-    "10",     # freedom of expression
-    "11",     # assembly and association
-    "14",     # prohibition of discrimination
-    "P1-1",   # protection of property
+    "2",  # right to life
+    "3",  # prohibition of torture
+    "5",  # liberty and security
+    "6",  # fair trial
+    "8",  # private and family life
+    "9",  # thought, conscience and religion
+    "10",  # freedom of expression
+    "11",  # assembly and association
+    "14",  # prohibition of discrimination
+    "P1-1",  # protection of property
 )
 
 

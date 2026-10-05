@@ -80,8 +80,16 @@ def test_cues_learn_and_tune_on_a_toy_corpus():
 def test_tune_matches_a_brute_force_threshold_search():
     """The single-pass tune must pick the cut an exhaustive search picks."""
     art6 = corpus.ARTICLES.index("6")
-    texts = ["delay proceedings", "delay hearing", "hearing", "land", "delay", "trial delay",
-             "proceedings land", "hearing trial"]
+    texts = [
+        "delay proceedings",
+        "delay hearing",
+        "hearing",
+        "land",
+        "delay",
+        "trial delay",
+        "proceedings land",
+        "hearing trial",
+    ]
     gold = [{art6}, {art6}, set(), set(), {art6}, set(), {art6}, set()]
     cases = [_case(t, g) for t, g in zip(texts, gold, strict=True)]
     cues = B.Cues(top=10).fit(cases).tune(cases)

@@ -52,8 +52,11 @@ def test_loader_reads_from_outcome_data(fake):
     assert cases[0].upheld == {3} and cases[0].rejected == {4}
     assert cases[1].no_violation and cases[1].rejected == {1}
     assert corpus.counts("test") == {
-        "cases": 2, "no_violation": 1, "alleged_claims": 3,
-        "upheld_claims": 1, "unalleged_findings": 0,
+        "cases": 2,
+        "no_violation": 1,
+        "alleged_claims": 3,
+        "upheld_claims": 1,
+        "unalleged_findings": 0,
     }
 
 
