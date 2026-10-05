@@ -141,3 +141,8 @@ src/outcome/baselines.py     four predictors and the micro/macro metrics
 scripts/measure.py           every table above
 tests/                       41 tests, incl. the alignment guard on deliberately misaligned parquet
 ```
+
+## Licence
+
+Code: MIT, see [LICENSE](LICENSE). No dataset is committed; the fetch script downloads
+each source under its own terms.
